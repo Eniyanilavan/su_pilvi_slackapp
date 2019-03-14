@@ -141,7 +141,6 @@ app.get("/oauth/callback", (req, res) => {
 app.post("/actions", async (req, res) => {
     attachments = [];
     action = JSON.parse(req.body.payload);
-    // console.log(action.type);
     if (action.type === "interactive_message") {
         var previous_mess = action.original_message;
         var offset = (parseInt(action.actions[0].value))+10;
@@ -200,7 +199,7 @@ app.post("/actions", async (req, res) => {
                 }
                 var attachment = {
                     title: "",
-                    callback_id: "error:${db}:${instance}:${date_qr}",
+                    callback_id: `error:${db}:${instance}:${date_qr}`,
                     actions:[
                         {
                             name : "next",
@@ -428,10 +427,10 @@ app.post("/slack", async (req, res) => {
                                             var date = message.split("from ")[1];
                                             date = new Date(date);
                                             date = date.getFullYear() + "-" + ("0" + (date.getMonth() + 1)).slice(-2) + "-" + ("0" + date.getDate()).slice(-2)
-                                            date_qr = `AND date>${date}`;
+                                            date_qr = ` AND date >= '${date}'`;
                                         }
-                                        var instance = message.split("of ")[1];
-                                        instance = instance.replace(/[\-\.@\^]/g,"_");
+                                        var instance = message.split("of ")[1].split('from ')[0];
+                                        instance = instance.trim().replace(/[\-\.@\^]/g,"_");
                                         text = "Hey <@" + event.user + "> here is the error logs from your instance";
                                         attachments = [];
                                         await pool.query(`select email from user_acc_token where userid=$1`,[req.body.authed_users[0]])
@@ -444,7 +443,10 @@ app.post("/slack", async (req, res) => {
                                                 password:"Eniyan007!"
                                             })
                                             var log_client = await log_pool.connect();
-                                            var logs = await log_client.query(`SELECT * FROM ${instance} where message like 'Error'${date_qr} offset 0 limit 10`);
+                                            var logs = await log_client.query(`SELECT * FROM ${instance} where message like 'Error'${date_qr} offset 0 limit 10`)
+                                            .catch(err=>{
+                                                console.log(err);
+                                            })
                                             if(logs.rowCount === 0){
                                                 text = "Hey <@" + event.user + ">";
                                                 attachments = [{
@@ -528,7 +530,6 @@ app.post("/slack", async (req, res) => {
                                             instance = message.split("of ")[1];                                            
                                         }
                                         instance = instance.replace(/[\-\.@\^]/g,"_");
-                                        console.log(instance);
                                         text = "Hey <@" + event.user + "> here is the logs from your instance";
                                         pool.connect();
                                         attachments = [];
@@ -712,7 +713,7 @@ app.post("/slack", async (req, res) => {
                                             var date = message.split("from ")[1];
                                             date = new Date(date);
                                             date = date.getFullYear() + "-" + ("0" + (date.getMonth() + 1)).slice(-2) + "-" + ("0" + date.getDate()).slice(-2)
-                                            date_qr = `AND date>${date}`;
+                                            date_qr = `AND date >= '${date}'`;
                                         }
                                         var instance = message.split("of ")[1];
                                         instance = instance.replace(/[\-\.@\^]/g,"_");
@@ -803,7 +804,6 @@ app.post("/slack", async (req, res) => {
                                         if(message.includes("from")){
                                             var date = message.split("from ")[1];
                                             date = new Date(date);
-                                            console.log(date.getMonth());
                                             date = date.getFullYear() + "-" + ("0" + (date.getMonth() + 1)).slice(-2) + "-" + ("0" + date.getDate()).slice(-2)
                                             date_qr = `WHERE date >= '${date}'`;
                                             instance = message.split("of ")[1].split(" ")[0];
